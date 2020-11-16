@@ -58,11 +58,12 @@ posts = db["posts"]
 #convert into a row of data
 for postsKey, postValue in postsData.items():
   for rowKey, rowValue in postValue.items():
-    #rowValue is the {} obj to insert
-    print("rowValue: ", rowValue)
-    posts.insert_one(rowValue)
+    #rowValue is the [] with {}obj in for each post
+    #print("type rowValue: ", type(rowValue))
+    for row in rowValue:
+      posts.insert_one(row)
 
-#print(posts.find_one())
+print(posts.find_one())
 
 # #create the votes collection
 # tags = db["tags"]
