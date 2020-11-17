@@ -5,6 +5,7 @@ import sys
 import pymongo
 from pymongo import MongoClient
 import json
+import re
 
 
 #pass in param port number from command line  
@@ -17,6 +18,8 @@ dblist = client.list_database_names()
 if "291db" not in dblist:
   db = client["291db"]
   print("test")
+else:
+  db = client["291db"]
 
 #read in files posts.json, tags.json, votes.json
 with open("Posts.json") as posts_json:
@@ -38,17 +41,17 @@ with open("Tags.json") as tags_json:
 #insert into posts collection
 if "posts" in db.list_collection_names():
   #if it exists we drop it and create a populate new a collection 
-  posts.drop()
+  db.posts.drop()
  
 
 if "tags" in db.list_collection_names():
   #if it exists we drop it and create a populate new a collection 
-  tags.drop()
+  db.tags.drop()
 
 
 if "votes" in db.list_collection_names():
   #if it exists we drop it and create a populate new a collection 
-  votes.drop()
+  db.votes.drop()
 
 #if the collections dont exist 
 #create the posts collection
@@ -63,14 +66,72 @@ for postsKey, postValue in postsData.items():
     for row in rowValue:
       posts.insert_one(row)
 
-print(posts.find_one())
 
-# #create the votes collection
-# tags = db["tags"]
-# #it is list so insert many 
-# tags.insert_one(tagsData)
+#create the tags collection
+tags = db["tags"]
+#it is list so insert many 
+#break posts up into single rows and insert (smaller size < doc limit)
+#convert into a row of data
+for tagsKey, tagsValue in tagsData.items():
+  for rowKey, rowValue in tagsValue.items():
+    #rowValue is the [] with {}obj in for each post
+    for row in rowValue:
+      tags.insert_one(row)
 
-# #create the votes collection
-# votes = db["votes"]
-# #it is list so insert many 
-# votes.insert_one(votesData)
+
+
+#create the votes collection
+votes = db["votes"]
+for votesKey, votesValue in votesData.items():
+  for votesKey, votesValue in votesValue.items():
+    #rowValue is the [] with {}obj in for each post
+    for row in rowValue:
+      votes.insert_one(row)
+
+
+
+#extract all terms of len 3 char or more in posts title and body
+#create index on this array of terms in posts collections
+
+
+postsCursor = db.posts.find({}, {"Title":1}, {"Body":1})
+for documents in postsCursor:
+  titleTerms = []
+  #print(title)
+  #gives {'_id':'...' , 'Title': '...'}
+  #extract
+  for titleKeys ,titleValues in documents.items():
+    #print(titleValues) 
+    #print(documents[titleKeys])
+    #title extraction
+    if(titleKeys == "Title"):
+      #print(documents["Title"])
+      #gives string titles for each post that has a title 
+      terms = re.split(r'\W+', documents["Title"])
+      #print(terms)
+      for word in terms:
+        if len(word) >= 3:
+          #removes word if length is less than 3
+          titleTerms.append(word)
+    #title extraction
+
+  print(titleTerms)
+
+
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
